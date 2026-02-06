@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChargeType {
+  storage
+  service
+  discount
+  manual
+}
+
+enum ChargeStatus {
+  unbilled
+  billed
+  void
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  partial
+  void
+}
+
+enum PaymentStatus {
+  pending
+  complete
+  failed
+}
+
+enum CommunicationStatus {
+  queued
+  sent
+  failed
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String?
+  phone     String?
+  currency  String   @default("usd")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  charges   Charge[]
+  invoices  Invoice[]
+  comms     CommunicationLog[]
+  genReqs   InvoiceGenerationRequest[]
+}
+
+model Charge {
+  id          String       @id @default(uuid()) @db.Uuid
+  customerId  String       @db.Uuid
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  type        ChargeType
+  amount      Int
+  currency    String
+  description String?
+  serviceDate DateTime?    @db.Date
+  periodFrom  DateTime?    @db.Date
+  periodTo    DateTime?    @db.Date
+  status      ChargeStatus @default(unbilled)
+  invoiceId   String?      @db.Uuid
+  invoice     Invoice?     @relation(fields: [invoiceId], references: [id])
+  invoiceItems InvoiceItem[]
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([customerId, status])
+  @@index([invoiceId])
+}
+
+model Invoice {
+  id         String       @id @default(uuid()) @db.Uuid
+  customerId String       @db.Uuid
+  customer   Customer     @relation(fields: [customerId], references: [id])
+  invoiceNo  String       @unique
+  periodFrom DateTime?    @db.Date
+  periodTo   DateTime?    @db.Date
+  status     InvoiceStatus
+  currency   String
+  subtotal   Int
+  taxRate    Decimal
+  taxAmount  Int
+  total      Int
+  amountPaid Int          @default(0)
+  issuedAt   DateTime
+  dueAt      DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  items      InvoiceItem[]
+  charges    Charge[]
+  payments   Payment[]
+  genReq     InvoiceGenerationRequest?
+
+  @@index([customerId, status])
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  invoiceId   String   @db.Uuid
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  chargeId    String?  @db.Uuid
+  charge      Charge?  @relation(fields: [chargeId], references: [id])
+  description String
+  amount      Int
+  taxRate     Decimal
+  taxAmount   Int
+  total       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id        String        @id @default(uuid()) @db.Uuid
+  invoiceId String        @db.Uuid
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id])
+  amount    Int
+  currency  String
+  status    PaymentStatus
+  provider  String
+  createdAt DateTime      @default(now())
+}
+
+model CommunicationLog {
+  id         String              @id @default(uuid()) @db.Uuid
+  customerId String              @db.Uuid
+  customer   Customer            @relation(fields: [customerId], references: [id])
+  type       String
+  status     CommunicationStatus
+  payload    Json
+  error      String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([customerId, type, status])
+}
+
+model InvoiceGenerationRequest {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
+  periodFrom DateTime @db.Date
+  periodTo   DateTime @db.Date
+  invoiceId  String?  @unique @db.Uuid
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, periodFrom, periodTo])
+}
+
