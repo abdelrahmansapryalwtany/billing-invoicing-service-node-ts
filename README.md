@@ -23,7 +23,7 @@ Install deps + run migrations:
 
 ```bash
 npm install
-cp env.example .env  # don't commit this file
+cp env.example .env  
 npx prisma migrate dev
 ```
 
