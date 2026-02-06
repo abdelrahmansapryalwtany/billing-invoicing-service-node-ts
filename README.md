@@ -1,4 +1,5 @@
 # Billing/Invoicing Mini-Service (Node.js + TypeScript)
+[![CI](https://github.com/abdelrahmansapryalwtany/billing-invoicing-service-node-ts/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/abdelrahmansapryalwtany/billing-invoicing-service-node-ts/actions/workflows/ci.yml)
 
 Production-ish mini-service for billing & invoicing built with **Express + TypeScript + PostgreSQL + Prisma + pg-boss**, including **PDF invoices**, **background jobs**, **Swagger docs**, and **integration tests** using **Testcontainers**.
 
